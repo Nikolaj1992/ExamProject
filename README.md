@@ -212,3 +212,5 @@ will have the same effect as a single request. This is useful when we want to up
 Also taking an existing guide an adding to a trip is more akin to updating, making put the logical choice.
 
 Something broke my code with the new endpoints.
+
+https://github.com/Nikolaj1992/ExamProject
