@@ -1,0 +1,101 @@
+### A simple get request to the test endpoint. No need for login
+GET {{url}}/api/auth/test/
+
+### Create a new user - this one will only get a USER role by default
+POST {{url}}/api/auth/register/
+
+{
+    "username": "test",
+    "password": "test123"
+}
+
+###
+POST {{url}}/api/auth/login/
+
+{
+    "username": "test",
+    "password": "test123"
+}
+
+> {%
+    client.global.set("jwt_token", response.body.token);
+    console.log("JWT Token:", client.global.get("jwt_token"));
+%}
+
+### Add new role to user, for test only
+POST {{url}}/api/auth/user/addrole/
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+    "role": "ADMIN"
+}
+
+###
+GET {{url}}/api/protected/user_demo/
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+###
+GET {{url}}/api/protected/admin_demo/
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+
+
+### Add a new artist
+POST {{url}}/api/artists
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "Sire Bean",
+  "type": "artist"
+}
+
+### Add album to artist (EXPERIMENTAL METHOD)
+POST {{url}}/api/artists/add_album
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "artistId": 2,
+  "albumId": 2
+}
+
+### Retrieve all artists
+GET {{url}}/api/artists
+
+### Retrieve all albums
+GET {{url}}/api/albums
+
+### Retrieve all songs
+GET {{url}}/api/songs
+
+### Retrieve album by id
+GET {{url}}/api/albums/1
+Accept: application/json
+
+### Add a new album
+POST {{url}}/api/albums
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "Gallicanae",
+  "type": "album"
+}
+
+###
+PUT {{url}}/api/albums/2
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "test",
+  "type": "album"
+}
+
+###
+DELETE {{url}}/api/albums/2
+Authorization: Bearer {{jwt_token}}

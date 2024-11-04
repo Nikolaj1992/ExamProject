@@ -1,0 +1,65 @@
+### Retrieve all trips
+GET {{url}}/api/trips
+
+### Retrieve trip by id
+GET {{url}}/api/trips/1
+
+### Add a new trip
+POST {{url}}/api/trips
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "startTime": "10:00:00",
+  "endTime": "18:00:00",
+  "longitude": "45.0",
+  "latitude": "90.0",
+  "name": "New Adventure",
+  "price": 500.0,
+  "category": "BEACH"
+}
+
+
+### Update trip by id
+PUT {{url}}/api/trips/1
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "id": 1,
+  "startTime": "10:00:00",
+  "endTime": "18:00:00",
+  "longitude": "45.0",
+  "latitude": "90.0",
+  "name": "Updated Beach Adventure",
+  "price": 500.0,
+  "category": "BEACH"
+}
+
+### Delete trip by id
+DELETE {{url}}/api/trips/1
+Authorization: Bearer {{jwt_token}}
+
+###
+PUT {{url}}/api/trips/3/guides/1
+Authorization: Bearer {{jwt_token}}
+
+###
+GET {{url}}/api/trips/guides/1
+Authorization: Bearer {{jwt_token}}
+
+### Populate trips
+POST {{url}}/api/trips/populate
+Authorization: Bearer {{jwt_token}}
+
+###
+GET {{url}}/api/trips/category/BEACH
+Authorization: Bearer {{jwt_token}}
+
+###
+GET {{url}}/api/trips/totalprice
+Authorization: Bearer {{jwt_token}}
+
+
+
+
