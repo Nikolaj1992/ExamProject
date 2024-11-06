@@ -2,20 +2,19 @@ package app.daos.Impl;
 
 import app.daos.IDAO;
 import app.daos.ITripGuideDAO;
-import app.dtos.GuideDTO;
-import app.dtos.PackingItemDTO;
 import app.dtos.TripDTO;
 import app.entities.Guide;
 import app.entities.Trip;
 import app.enums.Category;
 import app.security.exceptions.ApiException;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO {
+public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO<TripDTO> {
 
     private static TripDAO instance;
     private static EntityManagerFactory emf;
@@ -31,21 +30,21 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO {
     @Override
     public List<TripDTO> getAll() {
         try (var em = emf.createEntityManager()) {
-            TypedQuery<TripDTO> query = em.createQuery("SELECT new app.dtos.TripDTO(t) FROM Trip t", TripDTO.class);
-            return query.getResultList();
+            TypedQuery<Trip> query = em.createQuery("SELECT t FROM Trip t", Trip.class);
+            List<Trip> trips = query.getResultList();
+            return trips.stream().map(Trip::toDTO).collect(Collectors.toList());
         }
     }
 
     @Override
     public TripDTO getById(Integer id) {
         try (var em = emf.createEntityManager()) {
-            Trip trip = em.find(Trip.class, id);
-            if (trip == null) {
-                throw new ApiException(404, "Trip with ID " + id + " not found");
-            }
-            Guide guide = trip.getGuide(); // Fetch associated guide
-            GuideDTO guideDTO = (guide != null) ? new GuideDTO(guide) : null;
-            return new TripDTO(trip.getId(), trip.getStartTime(), trip.getEndTime(), trip.getLongitude(), trip.getLatitude(), trip.getName(), trip.getPrice(), trip.getCategory(), guideDTO);
+            Trip trip = em.createQuery("SELECT t FROM Trip t JOIN FETCH t.guide WHERE t.id = :id", Trip.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+            return trip.toDTO();
+        } catch (NoResultException e) {
+            throw new ApiException(404, "Trip with ID " + id + " not found");
         } catch (Exception e) {
             throw new ApiException(500, "Error retrieving trip with ID " + id + ": " + e.getMessage());
         }
@@ -54,46 +53,33 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO {
     @Override
     public TripDTO create(TripDTO tripDTO) {
         try (var em = emf.createEntityManager()) {
-            Trip trip = new Trip(tripDTO);
+            Trip trip = Trip.fromDTO(tripDTO);
             em.getTransaction().begin();
             em.persist(trip);
             em.getTransaction().commit();
-            return new TripDTO(trip);
+            return trip.toDTO();
         }
     }
 
     @Override
     public TripDTO update(Integer id, TripDTO tripDTO) {
         try (var em = emf.createEntityManager()) {
-            Trip existingTrip = em.find(Trip.class, id);
-            if (existingTrip == null) throw new ApiException(404, "Trip with ID " + id + " not found");
-
+            Trip trip = em.find(Trip.class, id);
+            if (trip == null) {
+                throw new ApiException(404, "Trip with ID " + id + " not found");
+            }
             em.getTransaction().begin();
-            if (tripDTO.getStartTime() != null) {
-                existingTrip.setStartTime(tripDTO.getStartTime());
-            }
-            if (tripDTO.getEndTime() != null) {
-                existingTrip.setEndTime(tripDTO.getEndTime());
-            }
-            if (tripDTO.getLongitude() != null) {
-                existingTrip.setLongitude(tripDTO.getLongitude());
-            }
-            if (tripDTO.getLatitude() != null) {
-                existingTrip.setLatitude(tripDTO.getLatitude());
-            }
-            if (tripDTO.getName() != null) {
-                existingTrip.setName(tripDTO.getName());
-            }
-            if (tripDTO.getPrice() != 0.0) {  // assuming price cannot be null, use a suitable default check
-                existingTrip.setPrice(tripDTO.getPrice());
-            }
-            if (tripDTO.getCategory() != null) {
-                existingTrip.setCategory(tripDTO.getCategory());
-            }
-            em.merge(existingTrip);
+            trip.setStartTime(tripDTO.getStartTime());
+            trip.setEndTime(tripDTO.getEndTime());
+            trip.setLongitude(tripDTO.getLongitude());
+            trip.setLatitude(tripDTO.getLatitude());
+            trip.setName(tripDTO.getName());
+            trip.setPrice(tripDTO.getPrice());
+            trip.setCategory(tripDTO.getCategory());
+            trip.setGuide(Guide.fromDTO(tripDTO.getGuide()));
+            em.merge(trip);
             em.getTransaction().commit();
-
-            return new TripDTO(existingTrip);
+            return trip.toDTO();
         }
     }
 
@@ -108,23 +94,20 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO {
             }
             em.remove(trip);
             em.getTransaction().commit();
-            return new TripDTO(trip);
+            return trip.toDTO();
         }
     }
 
-    // check these
     @Override
     public void addGuideToTrip(int tripId, int guideId) {
         try (var em = emf.createEntityManager()) {
-            em.getTransaction().begin();
             Trip trip = em.find(Trip.class, tripId);
             Guide guide = em.find(Guide.class, guideId);
-
+            em.getTransaction().begin();
             if (trip == null || guide == null) {
                 em.getTransaction().rollback();
                 throw new ApiException(404, "Trip or Guide not found");
             }
-
             trip.setGuide(guide);
             guide.getTrips().add(trip);
             em.merge(trip);
@@ -134,50 +117,40 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO {
     }
 
     @Override
-    public Set getTripsByGuide(int guideId) {
+    public Set<TripDTO> getTripsByGuide(int guideId) {
         try (var em = emf.createEntityManager()) {
-            TypedQuery<Trip> query = em.createQuery("SELECT t FROM Trip t WHERE t.guide.id = :guideId", Trip.class);
-            query.setParameter("guideId", guideId);
-
-            List<Trip> trips = query.getResultList();
-            Set<TripDTO> tripDTOSet = new HashSet<>();
-            for (Trip trip : trips) {
-                tripDTOSet.add(new TripDTO(trip));
-            }
-            return tripDTOSet;
+            Guide guide = em.find(Guide.class, guideId);
+            return guide != null ? guide.getTrips().stream().map(Trip::toDTO).collect(Collectors.toSet()) : Set.of();
         }
     }
 
-    public List<TripDTO> findByCategory(Category category) {
+    public List<TripDTO> getTripsByCategory(Category category) {
         try (var em = emf.createEntityManager()) {
             TypedQuery<Trip> query = em.createQuery("SELECT t FROM Trip t WHERE t.category = :category", Trip.class);
             query.setParameter("category", category);
             List<Trip> trips = query.getResultList();
             return trips.stream()
-                    .map(TripDTO::new)
+                    .map(Trip::toDTO)
                     .collect(Collectors.toList());
         }
     }
 
     public List<Map<String, Object>> getTotalPriceByGuide() {
         try (var em = emf.createEntityManager()) {
-            TypedQuery<Object[]> query = em.createQuery(
-                    "SELECT g.id, SUM(t.price) FROM Trip t JOIN t.guide g GROUP BY g.id", Object[].class);
-            List<Object[]> results = query.getResultList();
+            List<Object[]> results = em.createQuery(
+                            "SELECT t.guide.id, SUM(t.price) FROM Trip t GROUP BY t.guide.id", Object[].class)
+                    .getResultList();
 
-            List<Map<String, Object>> totalPriceList = new ArrayList<>();
+            return results.stream()
+                    .map(result -> Map.of("guideId", result[0], "totalPrice", result[1]))
+                    .collect(Collectors.toList());
+        }
+    }
 
-            for (Object[] result : results) {
-                Integer guideId = (Integer) result[0];
-                Double totalPrice = (Double) result[1];
-
-                Map<String, Object> map = new HashMap<>();
-                map.put("guideId", guideId);
-                map.put("totalPrice", totalPrice);
-                totalPriceList.add(map);
-            }
-
-            return totalPriceList;
+    // No longer used, but potentially useful later on
+    public List<Integer> getAllTripIds() {
+        try (var em = emf.createEntityManager()) {
+            return em.createQuery("SELECT t.id FROM Trip t", Integer.class).getResultList();
         }
     }
 

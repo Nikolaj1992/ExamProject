@@ -1,5 +1,6 @@
 package app.entities;
 
+import app.dtos.GuideDTO;
 import app.dtos.TripDTO;
 import app.enums.Category;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -8,8 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Getter
@@ -24,7 +23,7 @@ public class Trip {
     @Column(name = "trip_id", nullable = false, unique = true)
     private Integer id;
 
-    @Column(name = "start_time", nullable = false, unique = true)
+    @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
 
     @Column(name = "end_time", nullable = false)
@@ -49,29 +48,26 @@ public class Trip {
     @Setter
     @JsonBackReference
     @ManyToOne
-    @JoinColumn(name = "guide_id", nullable = false)
+    @JoinColumn(name = "guide_id", nullable = true)
     private Guide guide;
 
-    public Trip(TripDTO dto) {
-        if (dto.getId() != null) {
-            this.id = dto.getId();
-        }
-        this.startTime = dto.getStartTime();
-        this.endTime = dto.getEndTime();
-        this.longitude = dto.getLongitude();
-        this.latitude = dto.getLatitude();
-        this.name = dto.getName();
-        this.price = dto.getPrice();
-        this.category = dto.getCategory();
+    public TripDTO toDTO() {
+        GuideDTO guideDTO = this.guide != null ? this.guide.toDTO() : null;
+        return new TripDTO(this.id, this.startTime, this.endTime, this.longitude, this.latitude, this.name, this.price, this.category, guideDTO);
     }
 
-    public Trip(LocalTime startTime, LocalTime endTime, String longitude, String latitude, String name, double price, Category category) {
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.longitude = longitude;
-        this.latitude = latitude;
-        this.name = name;
-        this.price = price;
-        this.category = category;
+    public static Trip fromDTO(TripDTO tripDTO) {
+        Trip trip = new Trip();
+        trip.setId(tripDTO.getId());
+        trip.setStartTime(tripDTO.getStartTime());
+        trip.setEndTime(tripDTO.getEndTime());
+        trip.setLongitude(tripDTO.getLongitude());
+        trip.setLatitude(tripDTO.getLatitude());
+        trip.setName(tripDTO.getName());
+        trip.setPrice(tripDTO.getPrice());
+        trip.setCategory(tripDTO.getCategory());
+        trip.setGuide(Guide.fromDTO(tripDTO.getGuide()));
+        return trip;
     }
+
 }

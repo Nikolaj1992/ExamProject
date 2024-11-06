@@ -8,7 +8,7 @@ public class Main {
 
         ApplicationConfig.startServer(7075);
 
-//        System.out.println(FetchData.fetchPackingInfo("beach"));
+//        System.out.println(FetchData.fetchPackingInfo("beach"));  // just a test on fetching packing data
 
     }
 }

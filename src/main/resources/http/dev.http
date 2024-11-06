@@ -16,12 +16,15 @@ Authorization: Bearer {{jwt_token}}
   "latitude": "90.0",
   "name": "New Adventure",
   "price": 500.0,
-  "category": "BEACH"
+  "category": "snow",
+  "guide": {
+    "id": 1
+  }
 }
 
 
 ### Update trip by id
-PUT {{url}}/api/trips/1
+PUT {{url}}/api/trips/8
 Content-Type: application/json
 Authorization: Bearer {{jwt_token}}
 
@@ -31,20 +34,23 @@ Authorization: Bearer {{jwt_token}}
   "endTime": "18:00:00",
   "longitude": "45.0",
   "latitude": "90.0",
-  "name": "Updated Beach Adventure",
+  "name": "Updated New Adventure",
   "price": 500.0,
-  "category": "BEACH"
+  "category": "snow",
+  "guide": {
+    "id": 1
+  }
 }
 
 ### Delete trip by id
-DELETE {{url}}/api/trips/1
+DELETE {{url}}/api/trips/5
 Authorization: Bearer {{jwt_token}}
 
-###
-PUT {{url}}/api/trips/3/guides/1
+### Set guide for a specific trip
+PUT {{url}}/api/trips/8/guides/2
 Authorization: Bearer {{jwt_token}}
 
-###
+### Retrieve all trips for a specific guide
 GET {{url}}/api/trips/guides/1
 Authorization: Bearer {{jwt_token}}
 
@@ -52,14 +58,18 @@ Authorization: Bearer {{jwt_token}}
 POST {{url}}/api/trips/populate
 Authorization: Bearer {{jwt_token}}
 
-###
-GET {{url}}/api/trips/category/BEACH
+### Retrieve all trips for a specific category
+GET {{url}}/api/trips/category/beach
 Authorization: Bearer {{jwt_token}}
 
-###
-GET {{url}}/api/trips/totalprice
+### See total price of all trips for all guides
+GET {{url}}/api/trips/guide/totalPrice
 Authorization: Bearer {{jwt_token}}
 
+### Retrieve all packing items for a specific trip
+GET {{url}}/api/trips/category/beach/packingItems
+Authorization: Bearer {{jwt_token}}
 
-
-
+### Retrieve total weight of all packing items for a specific trip
+GET {{url}}/api/trips/1/totalWeight
+Authorization: Bearer {{jwt_token}}

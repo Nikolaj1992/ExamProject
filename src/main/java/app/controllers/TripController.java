@@ -5,17 +5,16 @@ import app.config.Populator;
 import app.daos.Impl.TripDAO;
 import app.dtos.PackingItemDTO;
 import app.dtos.TripDTO;
-import app.entities.Trip;
 import app.enums.Category;
 import app.security.exceptions.ApiException;
 import app.services.PackingItemService;
 import io.javalin.http.Context;
 import jakarta.persistence.EntityManagerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TripController {
 
@@ -46,9 +45,14 @@ public class TripController {
             if (trip == null) {
                 throw new ApiException(404, "Trip with ID: " + id + " not found. /api/trips/" + id);
             }
-//            PackingItemDTO packingItems = packingItemService.fetchPackingItems(trip.getCategory().toString().toLowerCase());
-//            trip.setPackingItems(packingItems);
-            ctx.json(trip, TripDTO.class).status(200);
+            String category = trip.getCategory().name().toLowerCase();
+            PackingItemDTO packingItems = packingItemService.fetchPackingItems(category);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("trip", trip);
+            response.put("packingItems", packingItems);
+
+            ctx.json(response).status(200);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -148,53 +152,73 @@ public class TripController {
 
     public void getTripsByCategory(Context ctx) {
         try {
-            String categoryParam = ctx.queryParam("category");
+            String categoryParam = ctx.pathParam("category");
             if (categoryParam == null) {
-                throw new ApiException(400, "Missing category query parameter");
+                throw new ApiException(400, "Category path parameter is missing");
             }
 
+            categoryParam = categoryParam.toLowerCase();
             Category category;
             try {
-                category = Category.valueOf(categoryParam.toUpperCase());
+                category = Category.valueOf(categoryParam);
             } catch (IllegalArgumentException e) {
-                throw new ApiException(400, "Invalid category");
+                throw new ApiException(400, "Invalid category value: " + categoryParam);
             }
-            List<TripDTO> filteredTrips = tDao.findByCategory(category);
 
-            ctx.json(filteredTrips, TripDTO.class).status(200);
+            List<TripDTO> filteredTrips = tDao.getTripsByCategory(category);
+            ctx.json(filteredTrips).status(200);
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new ApiException(500, "Internal Server Error: " + e.getMessage());
         }
     }
 
     public void getTotalPriceByGuide(Context ctx) {
-        List<Map<String, Object>> totalPriceList = tDao.getTotalPriceByGuide();
-        ctx.json(totalPriceList);
+        try {
+            List<Map<String, Object>> totalPrices = tDao.getTotalPriceByGuide();
+            ctx.json(totalPrices).status(200);
+        } catch (Exception e) {
+            ctx.status(500).json(Map.of("error", "An unexpected error occurred", "details", e.getMessage()));
+        }
     }
 
     public void getPackingItemsByCategory(Context ctx) {
-        String category = ctx.queryParam("category");
-        if (category != null) {
-            PackingItemDTO packingItems = packingItemService.fetchPackingItems(category.toLowerCase());
-            ctx.json(packingItems, PackingItemDTO.class).status(200);
-        } else {
-            throw new ApiException(400, "Missing category query parameter");
+        try {
+            String categoryParam = ctx.pathParam("category").toLowerCase();
+            if (categoryParam == null) {
+                throw new ApiException(400, "Category path parameter is missing");
+            }
+            PackingItemDTO packingItems = packingItemService.fetchPackingItems(categoryParam);
+            ctx.json(packingItems).status(200);
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void getTotalWeightByTripId(Context ctx) {
-        Integer id = Integer.valueOf(ctx.pathParam("id"));
-        TripDTO trip = tDao.getById(id);
-        if (trip != null) {
-            PackingItemDTO packingItems = packingItemService.fetchPackingItems(trip.getCategory().toString().toLowerCase());
-            double totalWeight = packingItems.getItems().stream()
-                    .mapToDouble(item -> item.getWeightInGrams() * item.getQuantity())
+        try {
+            int tripId = Integer.parseInt(ctx.pathParam("id"));
+            TripDTO trip = tDao.getById(tripId);
+            if (trip == null) {
+                throw new ApiException(404, "Trip with ID: " + tripId + " not found");
+            }
+
+            String category = trip.getCategory().name().toLowerCase();
+            PackingItemDTO packingItems = packingItemService.fetchPackingItems(category);
+
+            int totalWeight = packingItems.getItems().stream()
+                    .mapToInt(item -> item.getWeightInGrams() * item.getQuantity())
                     .sum();
-            ctx.json(Map.of("tripId", id, "totalWeightInGrams", totalWeight));
-        } else {
-            ctx.status(404).json("Trip not found.");
+
+            ctx.json(Map.of("tripId", tripId, "totalWeight", totalWeight)).status(200);
+        } catch (NumberFormatException e) {
+            throw new ApiException(400, "Invalid Trip ID");
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(500, "Internal Server Error. Could not retrieve total weight for trip");
         }
     }
-
 
 }

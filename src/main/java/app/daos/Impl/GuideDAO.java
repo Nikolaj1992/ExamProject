@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.TypedQuery;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GuideDAO implements IDAO<GuideDTO, Integer> {
 
@@ -25,8 +26,9 @@ public class GuideDAO implements IDAO<GuideDTO, Integer> {
     @Override
     public List<GuideDTO> getAll() {
         try (var em = emf.createEntityManager()) {
-            TypedQuery<GuideDTO> query = em.createQuery("SELECT new app.dtos.GuideDTO(g) FROM Guide g", GuideDTO.class);
-            return query.getResultList();
+            TypedQuery<Guide> query = em.createQuery("SELECT g FROM Guide g", Guide.class);
+            List<Guide> guides = query.getResultList();
+            return guides.stream().map(Guide::toDTO).collect(Collectors.toList());
         }
     }
 
@@ -34,52 +36,44 @@ public class GuideDAO implements IDAO<GuideDTO, Integer> {
     public GuideDTO getById(Integer id) {
         try (var em = emf.createEntityManager()) {
             Guide guide = em.find(Guide.class, id);
-            return new GuideDTO(guide);
+            if (guide == null) {
+                throw new ApiException(404, "Guide with ID " + id + " not found");
+            }
+            return guide != null ? guide.toDTO() : null;
         } catch (Exception e) {
-            throw new ApiException(404, "Guide with ID " + id + " not found");
+            throw new ApiException(500, "Error retrieving guide with ID " + id + ": " + e.getMessage());
         }
     }
 
     @Override
     public GuideDTO create(GuideDTO guideDTO) {
         try (var em = emf.createEntityManager()) {
-            Guide guide = new Guide(guideDTO);
+            Guide guide = Guide.fromDTO(guideDTO);
             em.getTransaction().begin();
             em.persist(guide);
             em.getTransaction().commit();
-            return new GuideDTO(guide);
+            return guide.toDTO();
         }
     }
 
     @Override
     public GuideDTO update(Integer id, GuideDTO guideDTO) {
         try (var em = emf.createEntityManager()) {
-            Guide existingGuide = em.find(Guide.class, id);
-            if (existingGuide == null) throw new ApiException(404, "Guide with ID " + id + " not found");
-
+            Guide guide = em.find(Guide.class, id);
+            if (guide == null) {
+                throw new ApiException(404, "Trip with ID " + id + " not found");
+            }
             em.getTransaction().begin();
-
-            if (guideDTO.getFirstName() != null) {
-                existingGuide.setFirstName(guideDTO.getFirstName());
-            }
-            if (guideDTO.getLastName() != null) {
-                existingGuide.setLastName(guideDTO.getLastName());
-            }
-            if (guideDTO.getEmail() != null) {
-                existingGuide.setEmail(guideDTO.getEmail());
-            }
-            if (guideDTO.getPhone() != null) {
-                existingGuide.setPhone(guideDTO.getPhone());
-            }
-            if (guideDTO.getYearsOfExperience() != 0) {  // assuming experience cannot be null
-                existingGuide.setYearsOfExperience(guideDTO.getYearsOfExperience());
-            }
-
-            em.merge(existingGuide);
+            guide.setFirstName(guideDTO.getFirstName());
+            guide.setLastName(guideDTO.getLastName());
+            guide.setEmail(guideDTO.getEmail());
+            guide.setPhone(guideDTO.getPhone());
+            guide.setYearsOfExperience(guideDTO.getYearsOfExperience());
+            em.merge(guide);
             em.getTransaction().commit();
-
-            return new GuideDTO(existingGuide);
+            return guide.toDTO();
         }
+
     }
 
     @Override
@@ -89,15 +83,11 @@ public class GuideDAO implements IDAO<GuideDTO, Integer> {
             em.getTransaction().begin();
             if (guide == null) {
                 em.getTransaction().rollback();
-                throw new ApiException(404, "Doctor with ID " + id + " not found");
+                throw new ApiException(404, "Trip with ID " + id + " not found");
             }
-            guide.getTrips().forEach(appointment -> {   // find better fix, maybe a placeholder doctor?
-                appointment.setGuide(null);
-                em.merge(appointment);
-            });
             em.remove(guide);
             em.getTransaction().commit();
-            return new GuideDTO(guide);
+            return guide.toDTO();
         }
     }
 

@@ -20,15 +20,15 @@ public class TripRoutes {
             post("/", tripController::create); // set role user or admin
             put("/{id}", tripController::update); // set role user or admin
             delete("/{id}", tripController::delete); // set role user or admin
-            put("/{tripId}/guides/{guideId}", tripController::addGuideToTrip); // set role user or admin
+            put("/{tripId}/guides/{guideId}", tripController::addGuideToTrip);
             get("/guides/{guideId}", tripController::getTripsByGuide, Role.ANYONE);
-            post("/populate", tripController::populate, Role.ANYONE);   // only anyone for test reasons
+            post("/populate", tripController::populate, Role.ANYONE);
 
             get("/category/{category}", tripController::getTripsByCategory, Role.ANYONE);
-            get("/guides/totalprice", tripController::getTotalPriceByGuide, Role.ANYONE);
+            get("/guide/totalPrice", tripController::getTotalPriceByGuide, Role.ANYONE);
 
-            get("/{id}/packing-items", tripController::getPackingItemsByCategory, Role.ANYONE);
-            get("/{id}/total-weight", tripController::getTotalWeightByTripId, Role.ANYONE);
+            get("/category/{category}/packingItems", tripController::getPackingItemsByCategory, Role.ANYONE);
+            get("/{id}/totalWeight", tripController::getTotalWeightByTripId, Role.ANYONE);
         };
     }
 }

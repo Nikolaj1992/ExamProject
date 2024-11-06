@@ -1,6 +1,7 @@
 package app.entities;
 
 import app.dtos.GuideDTO;
+import app.dtos.TripDTO;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -38,41 +40,22 @@ public class Guide {
     @Column(name = "experience", nullable = false)
     private int yearsOfExperience;
 
-    @ToString.Exclude
-    @JsonManagedReference
-    @OneToMany(mappedBy = "guide", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "guide", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private List<Trip> trips = new ArrayList<>();
 
-    // Conversion constructor from DTO to entity
-    public Guide(GuideDTO dto) {
-        if (dto.getId() != null) {
-            this.id = dto.getId();
-        }
-        this.firstName = dto.getFirstName();
-        this.lastName = dto.getLastName();
-        this.email = dto.getEmail();
-        this.phone = dto.getPhone();
-        this.yearsOfExperience = dto.getYearsOfExperience();
+    public GuideDTO toDTO() {
+        return new GuideDTO(this.id, this.firstName, this.lastName, this.email, this.phone, this.yearsOfExperience);
     }
 
-    public Guide(String firstName, String lastName, String email, String phone, int yearsOfExperience) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phone = phone;
-        this.yearsOfExperience = yearsOfExperience;
+    public static Guide fromDTO(GuideDTO guideDTO) {
+        Guide guide = new Guide();
+        guide.setId(guideDTO.getId());
+        guide.setFirstName(guideDTO.getFirstName());
+        guide.setLastName(guideDTO.getLastName());
+        guide.setEmail(guideDTO.getEmail());
+        guide.setPhone(guideDTO.getPhone());
+        guide.setYearsOfExperience(guideDTO.getYearsOfExperience());
+        return guide;
     }
-
-    //    // Helper method to add a trip
-//    public void addTrip(Trip trip) {
-//        trips.add(trip);
-//        trip.setGuide(this);
-//    }
-//
-//    // Helper method to remove a trip
-//    public void removeTrip(Trip trip) {
-//        trips.remove(trip);
-//        trip.setGuide(null);
-//    }
 
 }
