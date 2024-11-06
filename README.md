@@ -214,3 +214,10 @@ Also taking an existing guide an adding to a trip is more akin to updating, maki
 Something broke my code with the new endpoints.
 
 https://github.com/Nikolaj1992/ExamProject
+
+About security, I would add roles to all endpoints. Anyone would have access to GET endpoints, while only admins would access 
+POST, PUT and DELETE endpoints. I would then rely on the security setup we've used in projects in the past - having the roles:
+ANYONE, USER, ADMIN and use jwt tokens for authorization. This means i'd need to ensure i have security endpoints set up, for
+creating a user (who'd automatically receive the USER role) and a login endpoint as well. I'd then have the option of keeping the
+current security endpoint to simply add the ADMIN role to an existing user, but i'd prefer to seed an admin to the database on 
+startup in ApplicationConfig, to ensure there's always an admin available, without leaving such a vulnerable endpoint open.
