@@ -32,7 +32,9 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO<TripDTO> {
         try (var em = emf.createEntityManager()) {
             TypedQuery<Trip> query = em.createQuery("SELECT t FROM Trip t", Trip.class);
             List<Trip> trips = query.getResultList();
-            return trips.stream().map(Trip::toDTO).collect(Collectors.toList());
+            return trips.stream()
+                    .map(Trip::toDTO)
+                    .collect(Collectors.toList());
         }
     }
 
@@ -120,7 +122,9 @@ public class TripDAO implements IDAO<TripDTO, Integer>, ITripGuideDAO<TripDTO> {
     public Set<TripDTO> getTripsByGuide(int guideId) {
         try (var em = emf.createEntityManager()) {
             Guide guide = em.find(Guide.class, guideId);
-            return guide != null ? guide.getTrips().stream().map(Trip::toDTO).collect(Collectors.toSet()) : Set.of();
+            return guide != null ? guide.getTrips().stream()
+                    .map(Trip::toDTO)
+                    .collect(Collectors.toSet()) : Set.of();
         }
     }
 
