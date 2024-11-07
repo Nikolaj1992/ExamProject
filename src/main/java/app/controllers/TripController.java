@@ -179,7 +179,7 @@ public class TripController {
             List<Map<String, Object>> totalPrices = tDao.getTotalPriceByGuide();
             ctx.json(totalPrices).status(200);
         } catch (Exception e) {
-            ctx.status(500).json(Map.of("error", "An unexpected error occurred", "details", e.getMessage()));
+            throw new ApiException(500, "Internal Server Error. Could not retrieve total price by guides");
         }
     }
 
