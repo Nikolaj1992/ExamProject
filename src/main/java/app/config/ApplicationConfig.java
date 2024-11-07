@@ -34,6 +34,10 @@ public class ApplicationConfig {
     public static Javalin startServer(int port) {
         Javalin app = Javalin.create(ApplicationConfig::configuration);
 
+        app.before(ctx -> {
+            logger.info("Incoming request: Method: {}, Path: {}, IP: {}", ctx.method(), ctx.path(), ctx.ip());
+        });
+
         app.beforeMatched(accessController::accessHandler);
 
         app.beforeMatched(ctx -> accessController.accessHandler(ctx));
